@@ -19,6 +19,25 @@ const MODES: { id: TutorMode; label: string; icon: any; color: string; desc: str
   { id: 'friendly_talk', label: 'Friendly', icon: Coffee, color: 'rose', desc: 'Casual Chat' }
 ];
 
+const PulseRings: React.FC<{ volume: number; isConnected: boolean }> = ({ volume, isConnected }) => {
+  if (!isConnected) return null;
+  return (
+    <div className="absolute inset-0 -m-3 sm:-m-6 pointer-events-none">
+      {[...Array(3)].map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{ 
+            scale: 1 + volume * (1.3 + i * 0.6), 
+            opacity: 0.25 - i * 0.08 
+          }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="absolute inset-0 border border-emerald-500/20 rounded-full"
+        />
+      ))}
+    </div>
+  );
+};
+
 const LisaaInterface: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -26,6 +45,7 @@ const LisaaInterface: React.FC = () => {
   const [volume, setVolume] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeMode, setActiveMode] = useState<TutorMode>('physics');
+  const [inputText, setInputText] = useState('');
   
   const serviceRef = useRef<LisaaService | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -38,13 +58,15 @@ const LisaaInterface: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const toggleConnection = useCallback(async () => {
-    if (isConnected) {
-      serviceRef.current?.disconnect();
-      setIsConnected(false);
-      return;
-    }
+  const stopConnection = useCallback(() => {
+    serviceRef.current?.disconnect();
+    setIsConnected(false);
+    setIsConnecting(false);
+  }, []);
 
+  const startConnection = useCallback(async (mode: TutorMode) => {
+    if (isConnecting) return;
+    
     setIsConnecting(true);
     setError(null);
 
@@ -88,13 +110,52 @@ const LisaaInterface: React.FC = () => {
         onVolumeChange: (vol) => {
           setVolume(vol);
         }
-      }, activeMode);
+      }, mode);
     } catch (err: any) {
       console.error('Initialization Error:', err);
       setError(err.message || 'An unexpected error occurred during initialization.');
       setIsConnecting(false);
     }
-  }, [isConnected, activeMode]);
+  }, [isConnecting]);
+
+  // Clear messages and handle mode switching
+  useEffect(() => {
+    setMessages([]);
+    if (isConnected) {
+      stopConnection();
+      // Auto-reconnect with new mode
+      setTimeout(() => startConnection(activeMode), 300);
+    }
+  }, [activeMode]);
+
+  const handleSendText = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
+
+    const text = inputText.trim();
+    setInputText('');
+    setMessages(prev => [...prev, { text, isUser: true, timestamp: Date.now() }]);
+    
+    if (!isConnected) {
+      await startConnection(activeMode);
+      // Wait a bit for connection to be ready
+      setTimeout(async () => {
+        if (serviceRef.current) {
+          await serviceRef.current.sendText(text);
+        }
+      }, 1000);
+    } else if (serviceRef.current) {
+      await serviceRef.current.sendText(text);
+    }
+  };
+
+  const toggleConnection = useCallback(async () => {
+    if (isConnected) {
+      stopConnection();
+    } else {
+      await startConnection(activeMode);
+    }
+  }, [isConnected, activeMode, startConnection, stopConnection]);
 
   const currentModeData = MODES.find(m => m.id === activeMode)!;
 
@@ -125,20 +186,7 @@ const LisaaInterface: React.FC = () => {
               className="relative group/mic"
             >
               {/* Outer Pulse Rings */}
-              {isConnected && (
-                <div className="absolute inset-0 -m-3 sm:-m-6 pointer-events-none">
-                  {[...Array(3)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      animate={{ 
-                        scale: 1 + volume * (1.3 + i * 0.6), 
-                        opacity: 0.25 - i * 0.08 
-                      }}
-                      className="absolute inset-0 border border-emerald-500/20 rounded-full"
-                    />
-                  ))}
-                </div>
-              )}
+              <PulseRings volume={volume} isConnected={isConnected} />
 
               {/* Main Mic Button - Smaller */}
               <motion.div
@@ -185,15 +233,13 @@ const LisaaInterface: React.FC = () => {
           {MODES.map((mode) => (
             <button
               key={mode.id}
-              onClick={() => !isConnected && setActiveMode(mode.id)}
-              disabled={isConnected}
+              onClick={() => setActiveMode(mode.id)}
               className={`
                 relative flex flex-col items-center p-2 sm:p-3 rounded-xl transition-all duration-500 group/card
                 ${activeMode === mode.id 
                   ? 'bg-white/10 border-white/20 shadow-lg scale-[1.02]' 
                   : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.05] opacity-40 hover:opacity-100'}
                 border backdrop-blur-md
-                ${isConnected && activeMode !== mode.id ? 'opacity-10 grayscale' : ''}
               `}
             >
               <div className={`
@@ -250,12 +296,35 @@ const LisaaInterface: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mx-4 mb-4 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center space-x-2 text-red-400 text-[8px] font-bold uppercase tracking-widest"
+              className="mx-4 mb-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center space-x-2 text-red-400 text-[8px] font-bold uppercase tracking-widest"
             >
               <AlertCircle size={12} />
               <span>{error}</span>
             </motion.div>
           )}
+
+          {/* Text Chat Bar */}
+          <div className="px-4 pb-4">
+            <form 
+              onSubmit={handleSendText}
+              className="relative flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 transition-all"
+            >
+              <input 
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 bg-transparent border-none outline-none text-xs text-white/80 placeholder:text-white/20"
+              />
+              <button 
+                type="submit"
+                disabled={!inputText.trim()}
+                className="ml-2 p-1.5 rounded-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/40 disabled:opacity-50 transition-colors"
+              >
+                <Sparkles size={14} />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

@@ -60,15 +60,6 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Permanent Developer Credit */}
-      <div className="fixed bottom-6 right-6 z-[50] pointer-events-none">
-        <div className="px-4 py-2 bg-black/40 backdrop-blur-md border border-white/5 rounded-full">
-          <p className="text-[9px] uppercase tracking-[0.2em] text-white/20 font-bold">
-            Developed by: <span className="text-white/40">MD OMAR FARUK</span>
-          </p>
-        </div>
-      </div>
-
       {/* Immersive Background & Real-time Animations */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {/* Star Field (Universe) */}
@@ -91,6 +82,7 @@ const App: React.FC = () => {
               left: `${Math.random() * 100}%`,
               width: `${1 + Math.random() * 2}px`,
               height: `${1 + Math.random() * 2}px`,
+              willChange: 'opacity, transform'
             }}
           />
         ))}
@@ -106,6 +98,7 @@ const App: React.FC = () => {
             delay: 5
           }}
           className="absolute text-emerald-500/20"
+          style={{ willChange: 'transform' }}
         >
           <Rocket size={40} />
         </motion.div>
@@ -121,6 +114,7 @@ const App: React.FC = () => {
             delay: 12
           }}
           className="absolute text-blue-500/10"
+          style={{ willChange: 'transform' }}
         >
           <Plane size={30} />
         </motion.div>

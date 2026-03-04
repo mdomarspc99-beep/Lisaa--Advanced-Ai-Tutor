@@ -127,7 +127,7 @@ export class LisaaService {
           onopen: () => {
             console.log('Gemini Live connection opened.');
             const source = this.inputAudioContext!.createMediaStreamSource(stream);
-            this.scriptProcessor = this.inputAudioContext!.createScriptProcessor(4096, 1, 1);
+            this.scriptProcessor = this.inputAudioContext!.createScriptProcessor(1024, 1, 1);
             
             // For volume visualization
             this.analyser = this.inputAudioContext!.createAnalyser();
@@ -256,6 +256,20 @@ export class LisaaService {
       this.session = await sessionPromise;
     } catch (err) {
       callbacks.onError(err);
+    }
+  }
+
+  async sendText(text: string) {
+    if (this.session && this.session.send) {
+      this.session.send({
+        clientContent: {
+          turns: [{
+            role: 'user',
+            parts: [{ text }]
+          }],
+          turnComplete: true
+        }
+      });
     }
   }
 
