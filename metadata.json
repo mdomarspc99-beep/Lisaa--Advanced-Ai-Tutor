@@ -1,0 +1,7 @@
+{
+  "name": "Lisaa - Advanced AI Tutor",
+  "description": "A bilingual (English/Bengali) AI tutor specializing in Physics, IELTS Speaking, and History. Powered by Gemini Live API for immersive voice-first learning.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
