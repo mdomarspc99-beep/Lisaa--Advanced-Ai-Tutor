@@ -131,101 +131,48 @@ const App: React.FC = () => {
       </div>
 
       <header className="relative z-20 border-b border-white/5 bg-black/40 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
             <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-              <div className="relative w-12 h-12 rounded-xl bg-black border border-white/10 flex items-center justify-center">
-                <span className="font-serif italic text-2xl text-emerald-400">L</span>
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+              <div className="relative w-8 h-8 rounded-lg bg-black border border-white/10 flex items-center justify-center">
+                <span className="font-serif italic text-lg text-emerald-400">L</span>
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-serif italic tracking-tight">Lisaa</h1>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 font-bold">Advanced AI Systems</p>
+              <h1 className="text-lg font-serif italic tracking-tight">Lisaa</h1>
+              <p className="text-[7px] uppercase tracking-[0.2em] text-white/30 font-bold">AI Systems</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-6">
-            <div className="hidden md:flex items-center space-x-2 px-4 py-1.5 bg-white/5 rounded-full border border-white/10">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/50">Neural Link Active</span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+              <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[8px] font-bold uppercase tracking-wider text-white/50">Neural Active</span>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16 lg:py-24">
-        <div className="grid lg:grid-cols-[1.2fr_450px] gap-20 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -30 }}
-            animate={!showSplash ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-12"
-          >
-            <div className="space-y-6">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={!showSplash ? { opacity: 1, scale: 1 } : {}}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full"
-              >
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Next-Gen Education</span>
-              </motion.div>
-              <h2 className="text-6xl lg:text-8xl font-serif italic tracking-tighter leading-[0.85]">
-                The Art of <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-white to-blue-400">Intelligence.</span>
-              </h2>
-              <p className="text-xl text-white/40 max-w-xl leading-relaxed font-light">
-                Lisaa is a multi-dimensional AI tutor that bridges the gap between 
-                complex science, linguistic mastery, and historical context. 
-                Engage in natural voice conversations that feel human.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {[
-                { label: 'Physics', desc: 'Quantum & Mechanics' },
-                { label: 'IELTS', desc: 'Speaking Mastery' },
-                { label: 'History', desc: 'Civilizations & Geo' }
-              ].map((item, idx) => (
-                <motion.div 
-                  key={item.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={!showSplash ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.6, delay: 0.6 + (idx * 0.1) }}
-                  className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group cursor-default"
-                >
-                  <p className="text-sm font-serif italic text-white group-hover:text-emerald-400 transition-colors">{item.label}</p>
-                  <p className="text-[10px] text-white/30 uppercase tracking-wider mt-1">{item.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
-            animate={!showSplash ? { opacity: 1, scale: 1, filter: 'blur(0px)' } : {}}
-            transition={{ duration: 1.2, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full animate-float"
-          >
-            <LisaaInterface />
-          </motion.div>
-        </div>
+      <main className="relative z-10 max-w-5xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+          animate={!showSplash ? { opacity: 1, scale: 1, filter: 'blur(0px)' } : {}}
+          transition={{ duration: 1.2, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full"
+        >
+          <LisaaInterface />
+        </motion.div>
       </main>
 
-      <footer className="relative z-20 border-t border-white/5 py-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex flex-col items-center md:items-start space-y-2">
-            <span className="text-[10px] uppercase tracking-[0.3em] text-white/20 font-bold">© 2026 Lisaa AI Systems</span>
-            <span className="text-[9px] text-white/10">Refining the future of human-AI interaction.</span>
-          </div>
-          <div className="flex space-x-12 text-[10px] uppercase tracking-[0.2em] text-white/20 font-bold">
-            <span className="hover:text-white/40 transition-colors cursor-pointer">Privacy</span>
-            <span className="hover:text-white/40 transition-colors cursor-pointer">Terms</span>
-            <span className="hover:text-white/40 transition-colors cursor-pointer">Contact</span>
-          </div>
+      {/* Permanent Developer Credit */}
+      <div className="fixed bottom-4 right-4 z-[50] pointer-events-none">
+        <div className="px-3 py-1.5 bg-black/40 backdrop-blur-md border border-white/5 rounded-full">
+          <p className="text-[8px] uppercase tracking-[0.1em] text-white/20 font-bold">
+            By: <span className="text-white/40">MD OMAR FARUK</span>
+          </p>
         </div>
-      </footer>
+      </div>
     </div>
   );
 };

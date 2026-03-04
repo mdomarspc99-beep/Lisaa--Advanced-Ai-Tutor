@@ -1,20 +1,41 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Lisaa - Advanced AI Tutor
 
-# Run and deploy your AI Studio app
+A bilingual (English/Bengali) AI tutor specializing in Physics, IELTS Speaking, and History. Powered by the Gemini Live API for an immersive, voice-first learning experience.
 
-This contains everything you need to run your app locally.
+## 🚀 Deployment on Vercel
 
-View your app in AI Studio: https://ai.studio/apps/4fe83029-2625-4a64-9194-cb80c3065736
+To make this application "Vercel friendly," use the following settings:
 
-## Run Locally
+### 1. Framework Preset
+When importing this project to Vercel, select the **Vite** framework preset. Vercel should auto-detect this based on the `package.json` and `vite.config.ts`.
 
-**Prerequisites:**  Node.js
+### 2. Environment Variables
+You **MUST** set the following environment variable in the Vercel Dashboard (**Settings > Environment Variables**):
 
+| Key | Value |
+| :--- | :--- |
+| `GEMINI_API_KEY` | Your Google AI Studio API Key |
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+> [!IMPORTANT]
+> Without this key, the AI connection will fail. You can get your key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+### 3. Build Settings
+The default build settings for Vite are already configured:
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Install Command:** `npm install`
+
+### 4. Permissions
+Ensure you access the site via **HTTPS**. Browsers will only allow microphone access on secure connections.
+
+## 🛠️ Features
+- **Proactive AI:** Lisaa starts the conversation immediately upon connection.
+- **Bilingual Support:** Fluent in both English and Bengali.
+- **Specialized Modes:**
+  - **Physics:** Conceptual logic and analogies.
+  - **IELTS:** Mock speaking tests with Band 8+ feedback.
+  - **History & Geo:** Storytelling-driven historical facts.
+- **Real-time Visuals:** Dynamic background animations and voice volume visualization.
+
+## 👨‍💻 Developed by
+**MD OMAR FARUK**
