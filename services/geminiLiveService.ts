@@ -19,6 +19,7 @@ export interface LisaaCallbacks {
 const SYSTEM_INSTRUCTIONS: Record<TutorMode, string> = {
   physics: `You are "Lisaa," a brilliant and enthusiastic Physics Professor. 
 Your goal is to make the laws of the universe feel alive. 
+- Proactive: Greet the user immediately and introduce the topic of the day.
 - Focus: Classical mechanics, quantum physics, astrophysics, and thermodynamics.
 - Style: Use vivid analogies and conceptual logic.
 - Bilingual: English and Bengali.
@@ -26,6 +27,7 @@ Your goal is to make the laws of the universe feel alive.
   
   ielts: `You are "Lisaa," a professional IELTS Speaking Examiner. 
 Your goal is to help students achieve a Band 8+ score.
+- Proactive: Greet the user immediately and start a mock IELTS Speaking test.
 - Focus: Conduct mock tests (Part 1, 2, and 3). 
 - Style: Formal but encouraging. Provide feedback on lexical resource, grammatical range, and pronunciation.
 - Bilingual: Primarily English, but use Bengali for complex explanations if needed.
@@ -33,6 +35,7 @@ Your goal is to help students achieve a Band 8+ score.
 
   history_geo: `You are "Lisaa," a world-renowned Historian and Geographer.
 Your goal is to connect the past with the physical world.
+- Proactive: Greet the user immediately and share a fascinating historical or geographical fact.
 - Focus: Ancient civilizations, modern history, geopolitical shifts, and physical geography.
 - Style: Storytelling-driven. Explain how geography shaped history (e.g., why empires settled near rivers).
 - Bilingual: English and Bengali.
@@ -50,20 +53,55 @@ export class LisaaService {
   private analyser: AnalyserNode | null = null;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: (process.env.API_KEY as string) });
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error('No Gemini API key found in environment variables.');
+    }
+    this.ai = new GoogleGenAI({ apiKey: apiKey as string });
   }
 
   async connect(callbacks: LisaaCallbacks, mode: TutorMode = 'physics') {
     try {
-      this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: INPUT_SAMPLE_RATE });
-      this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
+      console.log('Starting Lisaa connection for mode:', mode);
+      // 1. Check for browser support
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support audio recording. Please use a modern browser like Chrome or Firefox over HTTPS.');
+      }
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('Your browser does not support the Web Audio API.');
+      }
+
+      // 2. Initialize Audio Contexts
+      this.inputAudioContext = new AudioContextClass({ sampleRate: INPUT_SAMPLE_RATE });
+      this.outputAudioContext = new AudioContextClass({ sampleRate: OUTPUT_SAMPLE_RATE });
       
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 3. Explicitly resume contexts (required by some browsers)
+      if (this.inputAudioContext.state === 'suspended') {
+        await this.inputAudioContext.resume();
+      }
+      if (this.outputAudioContext.state === 'suspended') {
+        await this.outputAudioContext.resume();
+      }
+
+      // 4. Request Microphone Permission
+      console.log('Requesting microphone access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      console.log('Microphone access granted.');
       
+      // 5. Connect to Gemini Live API
       const sessionPromise = this.ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         callbacks: {
           onopen: () => {
+            console.log('Gemini Live connection opened.');
             const source = this.inputAudioContext!.createMediaStreamSource(stream);
             this.scriptProcessor = this.inputAudioContext!.createScriptProcessor(4096, 1, 1);
             
@@ -83,19 +121,43 @@ export class LisaaService {
             };
             updateVolume();
 
+            let chunkCount = 0;
             this.scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
               const pcmBlob = this.createBlob(inputData);
+              chunkCount++;
+              
               sessionPromise.then((session: any) => {
-                session.sendRealtimeInput({ media: pcmBlob });
-              });
+                if (session && session.sendRealtimeInput) {
+                  session.sendRealtimeInput({ media: pcmBlob });
+                }
+              }).catch(err => console.error('Error sending audio:', err));
             };
 
             source.connect(this.scriptProcessor);
             this.scriptProcessor.connect(this.inputAudioContext!.destination);
+            
+            // Proactively trigger the AI to start talking
+            sessionPromise.then((session: any) => {
+              if (session && session.send) {
+                console.log('Sending initial trigger to AI...');
+                session.send({
+                  clientContent: {
+                    turns: [{
+                      role: 'user',
+                      parts: [{ text: 'Hello Lisaa, I am ready to start our session. Please introduce yourself and begin.' }]
+                    }],
+                    turnComplete: true
+                  }
+                });
+              }
+            });
+
             callbacks.onOpen();
           },
           onmessage: async (message: LiveServerMessage) => {
+            console.log('Gemini Message:', message);
+
             // Handle Transcripts
             if (message.serverContent?.outputTranscription) {
               callbacks.onTranscript(message.serverContent.outputTranscription.text, false);
@@ -103,34 +165,49 @@ export class LisaaService {
               callbacks.onTranscript(message.serverContent.inputTranscription.text, true);
             }
 
-            // Handle Audio Playback
-            const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (base64Audio && this.outputAudioContext) {
-              this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
-              const audioBuffer = await decodeAudioData(
-                decode(base64Audio),
-                this.outputAudioContext,
-                OUTPUT_SAMPLE_RATE,
-                1
-              );
-              
-              const source = this.outputAudioContext.createBufferSource();
-              source.buffer = audioBuffer;
-              const gainNode = this.outputAudioContext.createGain();
-              source.connect(gainNode);
-              gainNode.connect(this.outputAudioContext.destination);
+            // Handle Audio Playback (Iterate through all parts)
+            const parts = message.serverContent?.modelTurn?.parts;
+            if (parts && this.outputAudioContext) {
+              for (const part of parts) {
+                const base64Audio = part.inlineData?.data;
+                if (base64Audio) {
+                  // Ensure context is running before playback
+                  if (this.outputAudioContext.state === 'suspended') {
+                    await this.outputAudioContext.resume();
+                  }
 
-              source.addEventListener('ended', () => {
-                this.sources.delete(source);
-              });
+                  this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
+                  try {
+                    const audioBuffer = await decodeAudioData(
+                      decode(base64Audio),
+                      this.outputAudioContext,
+                      OUTPUT_SAMPLE_RATE,
+                      1
+                    );
+                    
+                    const source = this.outputAudioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    const gainNode = this.outputAudioContext.createGain();
+                    source.connect(gainNode);
+                    gainNode.connect(this.outputAudioContext.destination);
 
-              source.start(this.nextStartTime);
-              this.nextStartTime += audioBuffer.duration;
-              this.sources.add(source);
+                    source.addEventListener('ended', () => {
+                      this.sources.delete(source);
+                    });
+
+                    source.start(this.nextStartTime);
+                    this.nextStartTime += audioBuffer.duration;
+                    this.sources.add(source);
+                  } catch (decodeErr) {
+                    console.error('Audio decoding error:', decodeErr);
+                  }
+                }
+              }
             }
 
             // Handle Interruptions
             if (message.serverContent?.interrupted) {
+              console.log('AI Interrupted');
               this.sources.forEach(s => {
                 try { s.stop(); } catch(e) {}
               });

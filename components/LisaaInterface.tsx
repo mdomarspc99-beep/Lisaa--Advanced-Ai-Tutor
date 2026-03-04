@@ -46,6 +46,10 @@ const LisaaInterface: React.FC = () => {
     setError(null);
 
     try {
+      if (!process.env.API_KEY && !process.env.GEMINI_API_KEY) {
+        throw new Error('Gemini API Key is missing. Please set GEMINI_API_KEY in your environment variables.');
+      }
+
       if (!serviceRef.current) {
         serviceRef.current = new LisaaService();
       }
@@ -61,7 +65,8 @@ const LisaaInterface: React.FC = () => {
         },
         onError: (err) => {
           console.error('Lisaa Error:', err);
-          setError('Connection failed. Please check your microphone permissions.');
+          const message = err instanceof Error ? err.message : 'Connection failed. Please check your microphone permissions and internet connection.';
+          setError(message);
           setIsConnected(false);
           setIsConnecting(false);
         },
@@ -80,8 +85,9 @@ const LisaaInterface: React.FC = () => {
           setVolume(vol);
         }
       }, activeMode);
-    } catch (err) {
-      setError('An unexpected error occurred.');
+    } catch (err: any) {
+      console.error('Initialization Error:', err);
+      setError(err.message || 'An unexpected error occurred during initialization.');
       setIsConnecting(false);
     }
   }, [isConnected, activeMode]);
